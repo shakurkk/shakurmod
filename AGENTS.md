@@ -28,3 +28,12 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules (SHAKUR MOD)
+
+- Admin role is granted only by the `assign_owner_admin` trigger on auth users; never grant roles from app code or user metadata — it keeps admin limited to the owner's verified email.
+- All writes (files, folders, categories, storage uploads) go through the browser client and are enforced by admin-only RLS; UI hiding is cosmetic, so never add a write path that bypasses RLS.
+- The `files` storage bucket is private; downloads must go through `requestDownload` (signed short-lived link + `record_download`) so counts stay accurate.
+- Thumbnails live in a private `thumbnails` bucket with public read policy and are shown via signed URLs, because the workspace blocks public buckets.
+- File type and size rules live in `src/lib/file-types.ts` and are mirrored by DB CHECK constraints; change both together.
+- Uploads over 6 MB use resumable (TUS) uploads in `src/components/admin/upload.ts` so multi-GB files survive flaky connections.
