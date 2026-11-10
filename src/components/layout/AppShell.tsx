@@ -163,7 +163,15 @@ function AccountMenu() {
   const { viewer } = useViewer();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  if (!viewer.user) return null;
+  if (!viewer.user) {
+    return (
+      <Button asChild variant="ghost" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-muted-foreground">
+        <Link to="/auth" aria-label="Admin sign in">
+          <ShieldCheck className="h-4 w-4" /> Admin
+        </Link>
+      </Button>
+    );
+  }
   const initial = (viewer.user.name ?? viewer.user.email ?? "?").charAt(0).toUpperCase();
 
   return (

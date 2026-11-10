@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Loader2, ShieldAlert, ShieldCheck, ArrowLeft, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
@@ -41,7 +41,7 @@ function AuthPage() {
   const [key, setKey] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const signIn = async (e: React.FormEvent) => {
+  const signIn = async (e: FormEvent) => {
     e.preventDefault();
     if (!key.trim() || busy) return;
     setBusy(true);
