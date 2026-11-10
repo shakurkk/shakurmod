@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_key: {
+        Row: {
+          id: number
+          key_hash: string
+          key_salt: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          key_hash: string
+          key_salt: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          key_hash?: string
+          key_salt?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_login_attempts: {
         Row: {
           created_at: string
