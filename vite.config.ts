@@ -15,4 +15,30 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // Pre-bundle deps that are only reached on some pages, so the dev server doesn't
+    // re-optimize mid-session and serve two React copies ("reading 'useState'" of null).
+    optimizeDeps: {
+      include: [
+        "date-fns",
+        "recharts",
+        "zod",
+        "tus-js-client",
+        "@lovable.dev/cloud-auth-js",
+        "@radix-ui/react-alert-dialog",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-label",
+        "@radix-ui/react-progress",
+        "@radix-ui/react-select",
+        "@radix-ui/react-slot",
+        "@radix-ui/react-tabs",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "sonner",
+        "tailwind-merge",
+      ],
+    },
+  },
 });
