@@ -108,7 +108,14 @@ export async function createFile(file: File, meta: NewFileMeta, onProgress: (pct
   return id;
 }
 
-export async function deleteFile(f: { id: string; storage_path: string; thumbnail_path: string | null }) {
+export async function deleteFile({ id }: { id: string }) {
+  // Storage paths are not sent to the browser list; the admin reads them under admin-only rules.
+  const { data: f, error: readErr } = await supabase
+    .from("files")
+    .select("id, storage_path, thumbnail_path")
+    .eq("id", id)
+    .single();
+  if (readErr) throw readErr;
   const { error } = await supabase.from("files").delete().eq("id", f.id);
   if (error) throw error;
   await supabase.storage.from("files").remove([f.storage_path]);
