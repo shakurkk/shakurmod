@@ -42,7 +42,14 @@ export function EditFileDialog({ file, onClose }: { file: FileItem | null; onClo
     if (!name.trim()) { toast.error("Name can't be empty"); return; }
     setSaving(true);
     try {
-      let thumbnail_path = file.thumbnail_path;
+      const { data: current, error: readErr } = await supabase
+        .from("files")
+        .select("thumbnail_path")
+        .eq("id", file.id)
+        .single();
+      if (readErr) throw readErr;
+      const oldThumb = current.thumbnail_path;
+      let thumbnail_path = oldThumb;
       if (thumb) thumbnail_path = await uploadThumbnail(file.id, thumb);
       else if (removeThumb) thumbnail_path = null;
 
@@ -57,8 +64,8 @@ export function EditFileDialog({ file, onClose }: { file: FileItem | null; onClo
         })
         .eq("id", file.id);
       if (error) throw error;
-      if (file.thumbnail_path && file.thumbnail_path !== thumbnail_path) {
-        await supabase.storage.from("thumbnails").remove([file.thumbnail_path]);
+      if (oldThumb && oldThumb !== thumbnail_path) {
+        await supabase.storage.from("thumbnails").remove([oldThumb]);
       }
       qc.invalidateQueries({ queryKey: ["files"] });
       qc.invalidateQueries({ queryKey: ["file", file.id] });
