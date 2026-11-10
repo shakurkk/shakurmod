@@ -8,6 +8,20 @@
       "when": 1794331703969,
       "tag": "0000_shakur_mod_core",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794331712217,
+      "tag": "0001_thumbnails_public_read",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794331715884,
+      "tag": "0002_admin_download_stats",
+      "breakpoints": true
     }
   ]
 }

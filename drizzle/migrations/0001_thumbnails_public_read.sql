@@ -1,0 +1,2 @@
+CREATE POLICY "Anyone can read thumbnails" ON storage.objects FOR SELECT TO anon, authenticated
+  USING (bucket_id = 'thumbnails');
