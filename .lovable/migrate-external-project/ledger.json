@@ -1,18 +1,96 @@
 {
   "source": "code-archive (shakur-mod-library-main.zip, a TanStack Start app on its own Cloud backend)",
   "capabilities": [
-    {"capability": "code", "source": "src/ routes, components, lib", "outcome": "migrate", "status": "in_progress", "next_action": "copy app source into project"},
-    {"capability": "schema", "source": "drizzle/migrations 0000-0002 (user_roles, categories, folders, files, downloads, has_role, record_download, admin_download_stats, owner-admin trigger)", "outcome": "migrate", "status": "pending", "next_action": "recreate via Cloud migration"},
-    {"capability": "records", "source": "categories, folders, files, downloads rows in old backend", "outcome": "migrate", "status": "pending", "next_action": "request CSV/JSON exports after preview"},
-    {"capability": "auth identities", "source": "Google sign-in (owner only: nextshakur@gmail.com)", "outcome": "migrate", "status": "pending", "next_action": "enable Google sign-in in Cloud; owner re-signs in with Google, trigger re-grants admin"},
-    {"capability": "authorization", "source": "admin role via verified-email trigger + admin-only RLS", "outcome": "migrate", "status": "pending", "next_action": "recreate trigger, has_role and policies"},
-    {"capability": "storage buckets", "source": "private 'files' and 'thumbnails' buckets + policies", "outcome": "migrate", "status": "pending", "next_action": "create buckets and policies"},
-    {"capability": "uploaded file bytes", "source": "objects in old 'files'/'thumbnails' buckets", "outcome": "migrate", "status": "pending", "next_action": "owner re-uploads or provides file exports; metadata rows reference storage paths"},
-    {"capability": "public endpoints", "source": "requestDownload server function (signed link + record_download)", "outcome": "migrate", "status": "pending", "next_action": "copy and verify"},
-    {"capability": "schedules/webhooks", "source": "none found (cron-auth.ts is generated helper, unused)", "outcome": "none", "status": "verified", "next_action": "none"},
-    {"capability": "external providers", "source": "none (no Stripe, email, AI, analytics)", "outcome": "none", "status": "verified", "next_action": "none"},
-    {"capability": "secrets", "source": "only platform-managed Cloud keys", "outcome": "replaced by new Cloud", "status": "pending", "next_action": "none beyond enabling Cloud"},
-    {"capability": "cutover", "source": "old published site", "outcome": "pending", "status": "pending", "next_action": "publish this project once data is in"},
-    {"capability": "verification", "source": "-", "outcome": "verify", "status": "pending", "next_action": "build, routes, admin flows"}
+    {
+      "capability": "code",
+      "source": "src/ routes, components, lib",
+      "outcome": "migrate",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "schema",
+      "source": "drizzle/migrations 0000-0002 (user_roles, categories, folders, files, downloads, has_role, record_download, admin_download_stats, owner-admin trigger)",
+      "outcome": "migrate",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "records",
+      "source": "categories, folders, files, downloads rows in old backend",
+      "outcome": "migrate",
+      "status": "pending",
+      "next_action": "owner exports categories, folders, files, downloads as CSV from the old project"
+    },
+    {
+      "capability": "auth identities",
+      "source": "Google sign-in (owner only: nextshakur@gmail.com)",
+      "outcome": "migrate",
+      "status": "pending",
+      "next_action": "owner signs in with Google on the new app; admin role auto-granted by trigger; no other user accounts exist in the source"
+    },
+    {
+      "capability": "authorization",
+      "source": "admin role via verified-email trigger + admin-only RLS",
+      "outcome": "migrate",
+      "status": "verified",
+      "next_action": "anon writes rejected (401), download log hidden, private file bytes unreadable without signed link"
+    },
+    {
+      "capability": "storage buckets",
+      "source": "private 'files' and 'thumbnails' buckets + policies",
+      "outcome": "migrate",
+      "status": "verified",
+      "next_action": "files (private, 5GB) and thumbnails (private, 10MB) created; one 16-byte orphan test object left in files bucket"
+    },
+    {
+      "capability": "uploaded file bytes",
+      "source": "objects in old 'files'/'thumbnails' buckets",
+      "outcome": "migrate",
+      "status": "pending",
+      "next_action": "owner re-uploads files or provides originals; rows need matching storage objects"
+    },
+    {
+      "capability": "public endpoints",
+      "source": "requestDownload server function (signed link + record_download)",
+      "outcome": "migrate",
+      "status": "verified",
+      "next_action": "requestDownload tested: signed download + count incremented"
+    },
+    {
+      "capability": "schedules/webhooks",
+      "source": "none found (cron-auth.ts is generated helper, unused)",
+      "outcome": "none",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "external providers",
+      "source": "none (no Stripe, email, AI, analytics)",
+      "outcome": "none",
+      "status": "verified",
+      "next_action": "none"
+    },
+    {
+      "capability": "secrets",
+      "source": "only platform-managed Cloud keys",
+      "outcome": "replaced by new Cloud",
+      "status": "verified",
+      "next_action": "none needed"
+    },
+    {
+      "capability": "cutover",
+      "source": "old published site",
+      "outcome": "pending",
+      "status": "pending",
+      "next_action": "publish this project once data is in"
+    },
+    {
+      "capability": "verification",
+      "source": "-",
+      "outcome": "verify",
+      "status": "pending",
+      "next_action": "admin dashboard flows need the owner's Google sign-in"
+    }
   ]
 }
