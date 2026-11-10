@@ -31,7 +31,7 @@ use the editor.
 
 ## Project rules (SHAKUR MOD)
 
-- Admin role is granted only by the `assign_owner_admin` trigger on auth users; never grant roles from app code or user metadata — it keeps admin limited to the owner's verified email.
+- Admin sign-in is an Admin Key checked only in `adminKeyLogin` (src/lib/admin-login.functions.ts) against the `ADMIN_KEY` secret, throttled via `admin_login_attempts`; on success the server signs into the single admin account with a server-held password and returns its session, so every admin write stays enforced by RLS. The admin role itself is granted only by the `assign_owner_admin` trigger, never from app code or user metadata. Public sign-up and social providers stay off so no other account can exist.
 - All writes (files, folders, categories, storage uploads) go through the browser client and are enforced by admin-only RLS; UI hiding is cosmetic, so never add a write path that bypasses RLS.
 - The `files` storage bucket is private; downloads must go through `requestDownload` (signed short-lived link + `record_download`) so counts stay accurate.
 - Thumbnails live in a private `thumbnails` bucket with public read policy and are shown via signed URLs, because the workspace blocks public buckets.
