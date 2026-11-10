@@ -24,7 +24,6 @@ export default defineConfig({
         "recharts",
         "zod",
         "tus-js-client",
-        "@lovable.dev/cloud-auth-js",
         "@radix-ui/react-alert-dialog",
         "@radix-ui/react-dialog",
         "@radix-ui/react-dropdown-menu",
