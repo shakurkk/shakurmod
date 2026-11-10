@@ -6,9 +6,9 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const ITERATIONS = 100_000; // Cloudflare Workers' PBKDF2 maximum.
 
 const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
-const fromHex = (s: string) => new Uint8Array(s.match(/../g)?.map((h) => parseInt(h, 16)) ?? []);
+const fromHex = (s: string): Uint8Array<ArrayBuffer> => new Uint8Array(s.match(/../g)?.map((h) => parseInt(h, 16)) ?? []);
 
-async function derive(key: string, salt: Uint8Array) {
+async function derive(key: string, salt: Uint8Array<ArrayBuffer>) {
   const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(key), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: ITERATIONS }, base, 256);
   return new Uint8Array(bits);
