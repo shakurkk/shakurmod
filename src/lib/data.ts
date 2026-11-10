@@ -1,7 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { getLibraryStats, getPublicFile, listPublicFiles, listPublicFolders } from "./library.functions";
+import { getLibraryStats, listPublicCategories, getPublicFile, listPublicFiles, listPublicFolders } from "./library.functions";
 
 export type Category = Tables<"categories">;
 export type Folder = Tables<"folders">;
@@ -41,11 +40,7 @@ export const foldersQuery = () =>
 export const categoriesQuery = () =>
   queryOptions({
     queryKey: ["categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("*").order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: (): Promise<Category[]> => listPublicCategories(),
   });
 
 export const libraryStatsQuery = () =>

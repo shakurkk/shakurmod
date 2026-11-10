@@ -98,6 +98,13 @@ export const listPublicFolders = createServerFn({ method: "POST" }).handler(asyn
   return data ?? [];
 });
 
+export const listPublicCategories = createServerFn({ method: "POST" }).handler(async () => {
+  const sb = await admin();
+  const { data, error } = await sb.from("categories").select("id, name, slug, color, created_at").order("name");
+  if (error) throw new Error("Could not load categories");
+  return data ?? [];
+});
+
 export const getLibraryStats = createServerFn({ method: "POST" }).handler(async () => {
   const sb = await admin();
   const { data, error } = await sb.from("files").select("size_bytes, download_count, category_id, folder_id");
