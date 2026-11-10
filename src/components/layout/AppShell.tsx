@@ -14,7 +14,9 @@ import {
   LogOut,
   X,
   HardDrive,
+  KeyRound,
 } from "lucide-react";
+import { ChangeKeyDialog } from "@/components/admin/ChangeKeyDialog";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -163,6 +165,7 @@ function AccountMenu() {
   const { viewer } = useViewer();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [keyOpen, setKeyOpen] = useState(false);
   if (!viewer.user) {
     return (
       <Button asChild variant="ghost" size="sm" className="h-9 gap-1.5 rounded-full px-3 text-muted-foreground">
@@ -175,6 +178,7 @@ function AccountMenu() {
   const initial = (viewer.user.name ?? viewer.user.email ?? "?").charAt(0).toUpperCase();
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -201,6 +205,11 @@ function AccountMenu() {
             </Link>
           </DropdownMenuItem>
         )}
+        {viewer.isAdmin && (
+          <DropdownMenuItem onSelect={() => setKeyOpen(true)}>
+            <KeyRound className="h-4 w-4" /> Change admin key
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={async () => {
             await qc.cancelQueries();
@@ -213,6 +222,8 @@ function AccountMenu() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    {viewer.isAdmin && <ChangeKeyDialog open={keyOpen} onOpenChange={setKeyOpen} />}
+    </>
   );
 }
 

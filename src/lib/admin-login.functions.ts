@@ -3,6 +3,9 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { verifyAdminKey, storeAdminKey } from "./admin-key.server";
+import { MAX_ADMIN_KEY_LENGTH, validateNewAdminKey } from "./admin-key-rules";
 
 // The single admin account. The database's assign_owner_admin trigger grants the
 // admin role to this verified email; app code never grants roles.
@@ -10,18 +13,6 @@ const ADMIN_EMAIL = "nextshakur@gmail.com";
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILS_PER_IP = 5;
 const MAX_FAILS_GLOBAL = 30;
-
-async function sha256(s: string) {
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
-}
-
-// Constant-time comparison of the submitted key against the server-side secret.
-async function keyMatches(given: string, expected: string) {
-  const [a, b] = await Promise.all([sha256(given), sha256(expected)]);
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
-  return diff === 0;
-}
 
 function publicAuthClient() {
   const url = process.env["SUPABASE_URL"]!;
@@ -39,32 +30,51 @@ function publicAuthClient() {
   });
 }
 
+function requestIp() {
+  return (
+    getRequestHeader("cf-connecting-ip") ??
+    getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown"
+  );
+}
+
+// Failed key checks (login and key change) share one throttle.
+async function isThrottled(ip: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const since = new Date(Date.now() - WINDOW_MS).toISOString();
+  const [perIp, global] = await Promise.all([
+    supabaseAdmin.from("admin_login_attempts").select("id", { count: "exact", head: true }).eq("ip", ip).gte("created_at", since),
+    supabaseAdmin.from("admin_login_attempts").select("id", { count: "exact", head: true }).gte("created_at", since),
+  ]);
+  return (perIp.count ?? 0) >= MAX_FAILS_PER_IP || (global.count ?? 0) >= MAX_FAILS_GLOBAL;
+}
+
+async function recordFailure(ip: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("admin_login_attempts").insert({ ip });
+}
+
+async function clearFailures(ip: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("admin_login_attempts").delete().eq("ip", ip);
+}
+
+const TOO_MANY = "Too many attempts. Try again in 15 minutes.";
+
 // Public: exchanges the admin key for a session on the admin account. The key and
-// the account password live only in server secrets.
+// the account password live only on the server.
 export const adminKeyLogin = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => z.object({ key: z.string().min(1).max(200) }).parse(input))
+  .inputValidator((input: unknown) => z.object({ key: z.string().min(1).max(MAX_ADMIN_KEY_LENGTH) }).parse(input))
   .handler(async ({ data }) => {
-    const adminKey = process.env["ADMIN_KEY"];
     const password = process.env["ADMIN_ACCOUNT_PASSWORD"];
-    if (!adminKey || !password) throw new Error("Admin login is not configured.");
+    if (!password) throw new Error("Admin login is not configured.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const ip =
-      getRequestHeader("cf-connecting-ip") ??
-      getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "unknown";
-    const since = new Date(Date.now() - WINDOW_MS).toISOString();
+    const ip = requestIp();
+    if (await isThrottled(ip)) return { ok: false as const, error: TOO_MANY };
 
-    const [perIp, global] = await Promise.all([
-      supabaseAdmin.from("admin_login_attempts").select("id", { count: "exact", head: true }).eq("ip", ip).gte("created_at", since),
-      supabaseAdmin.from("admin_login_attempts").select("id", { count: "exact", head: true }).gte("created_at", since),
-    ]);
-    if ((perIp.count ?? 0) >= MAX_FAILS_PER_IP || (global.count ?? 0) >= MAX_FAILS_GLOBAL) {
-      return { ok: false as const, error: "Too many attempts. Try again in 15 minutes." };
-    }
-
-    if (!(await keyMatches(data.key, adminKey))) {
-      await supabaseAdmin.from("admin_login_attempts").insert({ ip });
+    if (!(await verifyAdminKey(data.key))) {
+      await recordFailure(ip);
       return { ok: false as const, error: "Incorrect admin key." };
     }
 
@@ -96,9 +106,44 @@ export const adminKeyLogin = createServerFn({ method: "POST" })
     }
 
     // Successful login clears this visitor's failed attempts.
-    await supabaseAdmin.from("admin_login_attempts").delete().eq("ip", ip);
+    await clearFailures(ip);
     return {
       ok: true as const,
       session: { access_token: res.data.session.access_token, refresh_token: res.data.session.refresh_token },
     };
+  });
+
+// Signed-in admin only: replaces the admin key after re-checking the current one.
+export const changeAdminKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        oldKey: z.string().min(1).max(MAX_ADMIN_KEY_LENGTH),
+        newKey: z.string().max(MAX_ADMIN_KEY_LENGTH),
+        confirmKey: z.string().max(MAX_ADMIN_KEY_LENGTH),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleErr || !isAdmin) throw new Error("Forbidden");
+
+    const ip = requestIp();
+    if (await isThrottled(ip)) return { ok: false as const, error: TOO_MANY };
+
+    if (!(await verifyAdminKey(data.oldKey))) {
+      await recordFailure(ip);
+      return { ok: false as const, error: "The current admin key is incorrect." };
+    }
+
+    const problem = validateNewAdminKey(data.oldKey, data.newKey, data.confirmKey);
+    if (problem) return { ok: false as const, error: problem };
+
+    await storeAdminKey(data.newKey);
+    await clearFailures(ip);
+    return { ok: true as const };
   });
