@@ -127,12 +127,20 @@ function RootComponent() {
   const bare = pathname === "/auth";
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      queryClient.invalidateQueries({ queryKey: ["viewer"] });
-      router.invalidate();
-    });
-    return () => data.subscription.unsubscribe();
+    // Browsers that block storage (e.g. Samsung Internet in a shared preview frame) make the
+    // sign-in client throw; visitors don't need it, so keep the page working without it.
+    let unsubscribe: (() => void) | undefined;
+    try {
+      const { data } = supabase.auth.onAuthStateChange((event) => {
+        if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+        queryClient.invalidateQueries({ queryKey: ["viewer"] });
+        router.invalidate();
+      });
+      unsubscribe = () => data.subscription.unsubscribe();
+    } catch (err) {
+      console.warn("Sign-in unavailable in this browser:", err);
+    }
+    return () => unsubscribe?.();
   }, [queryClient, router]);
 
   return (

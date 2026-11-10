@@ -1,7 +1,20 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
-import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
+import { supabase } from "@/integrations/supabase/client";
+
+// Same as the generated attachSupabaseAuth, but tolerant of browsers that block storage
+// (Samsung Internet inside a shared preview frame throws on localStorage). Intentionally
+// replaces the generated one: without this, every server call fails there and pages go blank.
+const attachAuthSafely = createMiddleware({ type: "function" }).client(async ({ next }) => {
+  let token: string | undefined;
+  try {
+    token = (await supabase.auth.getSession()).data.session?.access_token;
+  } catch {
+    token = undefined;
+  }
+  return next({ headers: token ? { Authorization: `Bearer ${token}` } : {} });
+});
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -32,6 +45,6 @@ const csrfMiddleware = createCsrfMiddleware({
 // user-managed Supabase project is connected, no middleware here sets Authorization, and the
 // project did not intentionally replace it.
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
+  functionMiddleware: [attachAuthSafely],
   requestMiddleware: [errorMiddleware, csrfMiddleware],
 }));

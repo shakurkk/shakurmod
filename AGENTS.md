@@ -37,3 +37,4 @@ use the editor.
 - Visitors read files, folders, categories, stats and thumbnails only through the public server functions in `src/lib/library.functions.ts` (narrow columns, no storage paths, signed thumbnail URLs); the `files`/`folders`/`categories` tables and both buckets are admin-only in the database, so never re-add anon SELECT policies or grants.
 - File type and size rules live in `src/lib/file-types.ts` and are mirrored by DB CHECK constraints; change both together.
 - Uploads over 6 MB use resumable (TUS) uploads in `src/components/admin/upload.ts` so multi-GB files survive flaky connections.
+- The browser must never crash when storage is blocked (Samsung Internet in shared-preview frames): `src/start.ts` uses its own `attachAuthSafely` instead of the generated `attachSupabaseAuth`, and every `localStorage`/auth-client call on visitor paths is wrapped in try/catch.

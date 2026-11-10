@@ -11,8 +11,13 @@ export const viewerQuery = () =>
   queryOptions({
     queryKey: ["viewer"],
     queryFn: async (): Promise<Viewer> => {
-      const { data } = await supabase.auth.getUser();
-      const u = data.user;
+      let u;
+      try {
+        u = (await supabase.auth.getUser()).data.user;
+      } catch {
+        // Storage blocked by the browser: treat the visitor as signed out.
+        return { user: null, isAdmin: false };
+      }
       if (!u) return { user: null, isAdmin: false };
       const { data: role } = await supabase
         .from("user_roles")
