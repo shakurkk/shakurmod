@@ -38,3 +38,4 @@ use the editor.
 - File type and size rules live in `src/lib/file-types.ts` and are mirrored by DB CHECK constraints; change both together.
 - Uploads over 6 MB use resumable (TUS) uploads in `src/components/admin/upload.ts` so multi-GB files survive flaky connections.
 - The browser must never crash when storage is blocked (Samsung Internet in shared-preview frames): `src/start.ts` uses its own `attachAuthSafely` instead of the generated `attachSupabaseAuth`, and every `localStorage`/auth-client call on visitor paths is wrapped in try/catch.
+- Copies hosted outside Lovable (no `SUPABASE_SERVICE_ROLE_KEY`, e.g. a Cloudflare Worker built from GitHub) run in mirror mode (`src/lib/mirror.ts`, called first in `src/server.ts`): every request is forwarded to the Lovable-hosted app (`UPSTREAM_ORIGIN`, default the published URL), because the backend's private key and admin password cannot leave Lovable hosting.
