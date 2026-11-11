@@ -81,7 +81,7 @@ export async function buildUpstreamRequest(request: Request, upstreamOrigin: str
   return new Request(target.toString(), {
     method: request.method,
     headers,
-    body: hasBody ? await request.arrayBuffer() : undefined,
+    body: hasBody ? await request.arrayBuffer() : null,
     redirect: "manual",
   });
 }
