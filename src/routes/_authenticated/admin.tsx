@@ -55,12 +55,12 @@ function AdminPage() {
   }, [search.new, navigate]);
 
   return (
-    <div>
+    <div className="w-full min-w-0 max-w-full">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft">
           <ShieldCheck className="h-6 w-6 text-primary-soft-foreground" />
         </span>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">Admin dashboard</h1>
           <p className="text-sm text-muted-foreground">Only you can see this page.</p>
         </div>
@@ -69,7 +69,7 @@ function AdminPage() {
       <StatsPanel />
 
       <Tabs value={tab} onValueChange={setTab} className="mt-8">
-        <TabsList className="h-11 rounded-full bg-surface p-1">
+        <TabsList className="h-11 max-w-full rounded-full bg-surface p-1">
           <TabsTrigger value="files" className="rounded-full px-4">Files</TabsTrigger>
           <TabsTrigger value="folders" className="rounded-full px-4">Folders</TabsTrigger>
           <TabsTrigger value="categories" className="rounded-full px-4">Categories</TabsTrigger>
