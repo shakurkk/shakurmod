@@ -34,28 +34,28 @@ export function StatsPanel() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="rounded-2xl border bg-card p-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Icon className="h-4 w-4 text-primary" /> {label}
+          <div key={label} className="min-w-0 rounded-2xl border bg-card p-3 sm:p-4">
+            <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Icon className="h-4 w-4 shrink-0 text-primary" /> <span className="truncate">{label}</span>
             </div>
-            <div className="mt-2 font-display text-2xl font-semibold">{value ?? <Skeleton className="h-7 w-16" />}</div>
+            <div className="mt-2 truncate font-display text-xl font-semibold sm:text-2xl">{value ?? <Skeleton className="h-7 w-16" />}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className="rounded-2xl border bg-card p-4 sm:p-5">
-          <div className="flex items-baseline justify-between">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="min-w-0 rounded-2xl border bg-card p-4 sm:p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h3 className="font-semibold">Downloads · last 30 days</h3>
             <span className="text-sm text-muted-foreground">{last30.toLocaleString()} total</span>
           </div>
           {series.isLoading ? (
             <Skeleton className="mt-4 h-56 w-full" />
           ) : (
-            <ChartContainer config={chartConfig} className="mt-4 h-56 w-full">
+            <ChartContainer config={chartConfig} className="mt-4 aspect-auto h-56 w-full min-w-0 max-w-full">
               <AreaChart data={series.data ?? []} margin={{ left: -20, right: 8, top: 8 }}>
                 <defs>
                   <linearGradient id="dlFill" x1="0" y1="0" x2="0" y2="1">
@@ -66,22 +66,22 @@ export function StatsPanel() {
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} tickFormatter={(d) => format(parseISO(d), "MMM d")} />
                 <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={40} />
-                <ChartTooltip content={<ChartTooltipContent labelFormatter={(d) => format(parseISO(String(d)), "MMM d, yyyy")} />} />
+                <ChartTooltip wrapperStyle={{ zIndex: 10 }} content={<ChartTooltipContent labelFormatter={(d) => format(parseISO(String(d)), "MMM d, yyyy")} />} />
                 <Area type="monotone" dataKey="downloads" stroke="var(--color-downloads)" strokeWidth={2} fill="url(#dlFill)" />
               </AreaChart>
             </ChartContainer>
           )}
         </div>
 
-        <div className="rounded-2xl border bg-card p-4 sm:p-5">
+        <div className="min-w-0 rounded-2xl border bg-card p-4 sm:p-5">
           <h3 className="font-semibold">Most downloaded</h3>
           <ul className="mt-3 space-y-1">
             {(top.data ?? []).map((f, i) => (
-              <li key={f.id} className="flex items-center gap-3 rounded-lg px-2 py-2">
-                <span className="w-4 text-xs font-semibold text-muted-foreground">{i + 1}</span>
-                <FileIcon ext={f.extension} />
+              <li key={f.id} className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2">
+                <span className="w-4 shrink-0 text-xs font-semibold text-muted-foreground">{i + 1}</span>
+                <span className="shrink-0"><FileIcon ext={f.extension} /></span>
                 <span className="min-w-0 flex-1 truncate text-sm">{f.name}</span>
-                <span className="text-sm font-semibold">{f.download_count.toLocaleString()}</span>
+                <span className="shrink-0 text-sm font-semibold">{f.download_count.toLocaleString()}</span>
               </li>
             ))}
             {top.data && top.data.length === 0 && <li className="py-6 text-center text-sm text-muted-foreground">No downloads yet</li>}
