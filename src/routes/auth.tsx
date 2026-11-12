@@ -62,6 +62,7 @@ function AuthPage() {
       const { data: sess, error: sessErr } = await supabase.auth.setSession(res.session);
       if (sessErr || !sess.user) throw sessErr ?? new Error("No session");
       setKey("");
+      toast.dismiss(); // clear any earlier "Incorrect Admin Key!" notice
       // The server only returns a session for the admin account; the dashboard's own
       // role check (and RLS on every write) still verifies it on arrival.
       qc.setQueryData(["viewer"], {
