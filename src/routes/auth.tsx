@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, ShieldAlert, ShieldCheck, ArrowLeft, KeyRound, XCircle, CheckCircle2 } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Loader2, ShieldAlert, ShieldCheck, ArrowLeft, KeyRound, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { adminKeyLogin } from "@/lib/admin-login.functions";
@@ -33,18 +33,12 @@ function AuthPage() {
   const qc = useQueryClient();
   const viewer = useQuery(viewerQuery());
   const [busy, setBusy] = useState(false);
-  // "success" holds the welcome screen for ~2s before opening the dashboard.
-  const [success, setSuccess] = useState(false);
   const [shake, setShake] = useState(0);
-  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Already signed in as admin (e.g. opened /auth again): go straight to the dashboard.
   useEffect(() => {
-    if (viewer.data?.isAdmin && !success) navigate({ to: "/admin", replace: true });
-  }, [viewer.data?.isAdmin, success, navigate]);
-
-  useEffect(() => () => {
-    if (redirectTimer.current) clearTimeout(redirectTimer.current);
-  }, []);
+    if (viewer.data?.isAdmin) navigate({ to: "/admin", replace: true });
+  }, [viewer.data?.isAdmin, navigate]);
 
   const login = useServerFn(adminKeyLogin);
   const [key, setKey] = useState("");
@@ -65,17 +59,17 @@ function AuthPage() {
         setBusy(false);
         return;
       }
-      const { error: sessErr } = await supabase.auth.setSession(res.session);
-      if (sessErr) throw sessErr;
+      const { data: sess, error: sessErr } = await supabase.auth.setSession(res.session);
+      if (sessErr || !sess.user) throw sessErr ?? new Error("No session");
       setKey("");
-      setSuccess(true);
-      toast.success("Login Successful!", {
-        description: "Welcome, Boss! 👑",
-        icon: <CheckCircle2 className="h-5 w-5 text-success" />,
-        duration: 2500,
+      // The server only returns a session for the admin account; the dashboard's own
+      // role check (and RLS on every write) still verifies it on arrival.
+      qc.setQueryData(["viewer"], {
+        user: { id: sess.user.id, email: sess.user.email ?? null, name: "Admin", avatar: null },
+        isAdmin: true,
       });
-      await qc.invalidateQueries({ queryKey: ["viewer"] });
-      redirectTimer.current = setTimeout(() => navigate({ to: "/admin", replace: true }), 2000);
+      // Keep the button in its "Verifying…" state; the page is replaced by the dashboard.
+      await navigate({ to: "/admin", replace: true });
     } catch {
       toast.error("Sign-in didn't complete. Please try again.");
       setBusy(false);
@@ -93,28 +87,7 @@ function AuthPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <div className="w-full max-w-[420px] rounded-3xl border bg-card px-6 py-10 text-center shadow-lift sm:px-10">
         <Logo className="justify-center" />
-        {success ? (
-          <div role="status" aria-live="polite" className="animate-rise">
-            <div className="mx-auto mt-8 flex h-20 w-20 items-center justify-center rounded-full bg-success/15 motion-safe:animate-pop">
-              <svg viewBox="0 0 24 24" className="h-10 w-10 text-success" fill="none" aria-hidden="true">
-                <path
-                  d="M5 12.5l4.5 4.5L19 7.5"
-                  stroke="currentColor"
-                  strokeWidth={2.6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="motion-safe:animate-draw-check"
-                />
-              </svg>
-            </div>
-            <h1 className="mt-5 text-xl font-semibold text-success">Login Successful!</h1>
-            <p className="mt-2 text-lg font-medium">Welcome, Boss! 👑</p>
-            <p className="mt-1 text-sm text-muted-foreground">Opening your admin dashboard…</p>
-            <div className="mx-auto mt-6 h-1 w-full max-w-[200px] overflow-hidden rounded-full bg-surface">
-              <div className="h-full w-full origin-left rounded-full bg-success animate-progress" />
-            </div>
-          </div>
-        ) : viewer.isLoading ? (
+        {viewer.isLoading ? (
           <Loader2 className="mx-auto mt-10 h-6 w-6 animate-spin text-muted-foreground" />
         ) : signedInNotAdmin ? (
           <>
