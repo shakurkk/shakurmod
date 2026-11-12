@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
-import { Loader2, ShieldAlert, ShieldCheck, ArrowLeft, KeyRound } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Loader2, ShieldAlert, ShieldCheck, ArrowLeft, KeyRound, XCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { adminKeyLogin } from "@/lib/admin-login.functions";
@@ -10,6 +10,7 @@ import { viewerQuery } from "@/lib/auth";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -32,10 +33,18 @@ function AuthPage() {
   const qc = useQueryClient();
   const viewer = useQuery(viewerQuery());
   const [busy, setBusy] = useState(false);
+  // "success" holds the welcome screen for ~2s before opening the dashboard.
+  const [success, setSuccess] = useState(false);
+  const [shake, setShake] = useState(0);
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (viewer.data?.isAdmin) navigate({ to: "/admin", replace: true });
-  }, [viewer.data?.isAdmin, navigate]);
+    if (viewer.data?.isAdmin && !success) navigate({ to: "/admin", replace: true });
+  }, [viewer.data?.isAdmin, success, navigate]);
+
+  useEffect(() => () => {
+    if (redirectTimer.current) clearTimeout(redirectTimer.current);
+  }, []);
 
   const login = useServerFn(adminKeyLogin);
   const [key, setKey] = useState("");
@@ -49,15 +58,24 @@ function AuthPage() {
     try {
       const res = await login({ data: { key: key.trim() } });
       if (!res.ok) {
-        setError(res.error);
+        const msg = res.error === "Incorrect admin key." ? "Incorrect Admin Key!" : res.error;
+        setError(msg);
+        setShake((n) => n + 1);
+        toast.error(msg, { icon: <XCircle className="h-5 w-5 text-destructive" /> });
         setBusy(false);
         return;
       }
       const { error: sessErr } = await supabase.auth.setSession(res.session);
       if (sessErr) throw sessErr;
       setKey("");
+      setSuccess(true);
+      toast.success("Login Successful!", {
+        description: "Welcome, Boss! 👑",
+        icon: <CheckCircle2 className="h-5 w-5 text-success" />,
+        duration: 2500,
+      });
       await qc.invalidateQueries({ queryKey: ["viewer"] });
-      navigate({ to: "/admin", replace: true });
+      redirectTimer.current = setTimeout(() => navigate({ to: "/admin", replace: true }), 2000);
     } catch {
       toast.error("Sign-in didn't complete. Please try again.");
       setBusy(false);
@@ -75,7 +93,28 @@ function AuthPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <div className="w-full max-w-[420px] rounded-3xl border bg-card px-6 py-10 text-center shadow-lift sm:px-10">
         <Logo className="justify-center" />
-        {viewer.isLoading ? (
+        {success ? (
+          <div role="status" aria-live="polite" className="animate-rise">
+            <div className="mx-auto mt-8 flex h-20 w-20 items-center justify-center rounded-full bg-success/15 motion-safe:animate-pop">
+              <svg viewBox="0 0 24 24" className="h-10 w-10 text-success" fill="none" aria-hidden="true">
+                <path
+                  d="M5 12.5l4.5 4.5L19 7.5"
+                  stroke="currentColor"
+                  strokeWidth={2.6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="motion-safe:animate-draw-check"
+                />
+              </svg>
+            </div>
+            <h1 className="mt-5 text-xl font-semibold text-success">Login Successful!</h1>
+            <p className="mt-2 text-lg font-medium">Welcome, Boss! 👑</p>
+            <p className="mt-1 text-sm text-muted-foreground">Opening your admin dashboard…</p>
+            <div className="mx-auto mt-6 h-1 w-full max-w-[200px] overflow-hidden rounded-full bg-surface">
+              <div className="h-full w-full origin-left rounded-full bg-success animate-progress" />
+            </div>
+          </div>
+        ) : viewer.isLoading ? (
           <Loader2 className="mx-auto mt-10 h-6 w-6 animate-spin text-muted-foreground" />
         ) : signedInNotAdmin ? (
           <>
@@ -106,7 +145,7 @@ function AuthPage() {
               <label htmlFor="admin-key" className="sr-only">
                 Admin key
               </label>
-              <div className="relative">
+              <div key={shake} className={cn("relative", shake > 0 && "motion-safe:animate-shake")}>
                 <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="admin-key"
@@ -115,6 +154,7 @@ function AuthPage() {
                   autoFocus
                   placeholder="Admin key"
                   value={key}
+                  readOnly={busy}
                   onChange={(e) => {
                     setKey(e.target.value);
                     setError(null);
@@ -123,10 +163,14 @@ function AuthPage() {
                   className="h-11 rounded-full pl-11"
                 />
               </div>
-              {error && <p className="px-2 text-sm text-destructive">{error}</p>}
+              {error && (
+                <p role="alert" className="flex items-center gap-2 px-2 text-sm font-medium text-destructive animate-rise">
+                  <XCircle className="h-4 w-4 shrink-0" /> <span className="min-w-0">{error}</span>
+                </p>
+              )}
               <Button type="submit" variant="pill" className="h-11 w-full gap-2 text-sm font-medium" disabled={busy || !key.trim()}>
                 {busy && <Loader2 className="animate-spin" />}
-                Unlock dashboard
+                {busy ? "Verifying…" : "Unlock dashboard"}
               </Button>
             </form>
             <Link to="/" className="mt-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">

@@ -91,15 +91,15 @@ export function CategoriesPanel() {
       {(cats.data ?? []).length === 0 ? (
         <EmptyState title="No categories yet" body="Add categories like Games, Apps or Tools to help visitors browse." />
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {(cats.data ?? []).map((c) => {
             const tone = categoryTone(c.color);
             const isEditing = edit?.id === c.id;
             return (
-              <li key={c.id} className="flex items-center gap-3 rounded-xl border px-4 py-3">
+              <li key={c.id} className="flex min-w-0 items-center gap-3 rounded-xl border px-4 py-3">
                 <span className={cn("h-3 w-3 shrink-0 rounded-full", tone.dot)} />
                 {isEditing ? (
-                  <div className="flex flex-1 flex-col gap-2">
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <Input value={edit.name} maxLength={60} onChange={(e) => setEdit({ ...edit, name: e.target.value })} className="h-9" />
                     <ColorDots value={edit.color} onChange={(col) => setEdit({ ...edit, color: col })} />
                   </div>
