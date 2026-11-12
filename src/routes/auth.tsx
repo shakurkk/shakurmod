@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Loader2, ShieldAlert, ShieldCheck, ArrowLeft, KeyRound, XCircle } from "lucide-react";
+import { Loader2, ShieldAlert, ShieldCheck, ArrowLeft, KeyRound, XCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { adminKeyLogin } from "@/lib/admin-login.functions";
@@ -61,7 +61,7 @@ function AuthPage() {
         const msg = res.error === "Incorrect admin key." ? "Incorrect Admin Key!" : res.error;
         setError(msg);
         setShake((n) => n + 1);
-        toast.error(msg);
+        toast.error(msg, { icon: <XCircle className="h-5 w-5 text-destructive" /> });
         setBusy(false);
         return;
       }
@@ -69,7 +69,11 @@ function AuthPage() {
       if (sessErr) throw sessErr;
       setKey("");
       setSuccess(true);
-      toast.success("Login Successful!", { description: "Welcome, Boss! 👑" });
+      toast.success("Login Successful!", {
+        description: "Welcome, Boss! 👑",
+        icon: <CheckCircle2 className="h-5 w-5 text-success" />,
+        duration: 2500,
+      });
       await qc.invalidateQueries({ queryKey: ["viewer"] });
       redirectTimer.current = setTimeout(() => navigate({ to: "/admin", replace: true }), 2000);
     } catch {
